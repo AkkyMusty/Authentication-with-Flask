@@ -40,12 +40,17 @@ def home():
 @app.route('/register', methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        hashed_password = generate_password_hash(request.form["password"], method='pbkdf2:sha256', salt_length=8)
-        new_user = User(email=request.form.get("email"), password=hashed_password, name=request.form.get("name"))
-        db.session.add(new_user)
-        db.session.commit()
-        login_user(new_user)
-        return redirect(url_for('secrets'))
+        email = request.form.get('password')
+        if db.session.execute(db.select(User).where(User.email == email)).scalar():
+            flash('You already registered with that email. Sign in instead')
+            return redirect(url_for('login'))
+        else:
+            hashed_password = generate_password_hash(request.form["password"], method='pbkdf2:sha256', salt_length=8)
+            new_user = User(email=email, password=hashed_password, name=request.form.get("name"))
+            db.session.add(new_user)
+            db.session.commit()
+            login_user(new_user)
+            return redirect(url_for('secrets'))
     return render_template("register.html")
 
 
@@ -56,9 +61,15 @@ def login():
         password = request.form.get('password')
         user = db.session.execute(db.select(User).where(User.email == email)).scalar()
         # current_user = db.get_or_404(User, request.form.get("email"))
-        if check_password_hash(user.password, password):
-            login_user(current_user)
-            return redirect(url_for('secrets'))
+        if user:
+            if check_password_hash(user.password, password):
+                login_user(user)
+                flash('You were successfully logged in')
+                return redirect(url_for('secrets'))
+            else:
+                flash("Password incorrect. Try again later")
+        else:
+            flash('The email does not exit. Please try again')
 
     return render_template("login.html")
 
