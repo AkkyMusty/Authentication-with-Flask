@@ -83,7 +83,8 @@ def secrets():
 @app.route('/logout')
 @login_required
 def logout():
-    logout_user()
+    if current_user.is_authenticated:
+        logout_user()
     return redirect(url_for('home'))
 
 
